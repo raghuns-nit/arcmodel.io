@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Curriculum Ontology Browser</title>
+    <style>
+        :root {
+            --primary: #1a5f7a;
+            --secondary: #22a699;
+            --bg: #f8f9fa;
+            --sidebar-bg: #ffffff;
+            --border: #e2e8f0;
+            --text-main: #334155;
+            --text-light: #64748b;
+            --link: #0284c7;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            background-color: var(--bg);
+            color: var(--text-main);
+            overflow: hidden;
+        }
+        .app-container { display: flex; flex-direction: column; width: 100%; }
+        .header {
+            background: var(--primary);
+            color: white;
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            z-index: 10;
+        }
+        .header h1 { margin: 0; font-size: 1.2rem; font-weight: 600; letter-spacing: 0.5px; }
+        .header-links a {
+            color: white;
+            text-decoration: none;
+            background: rgba(255,255,255,0.2);
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            transition: background 0.2s;
+        }
+        .header-links a:hover { background: rgba(255,255,255,0.3); }
+        
+        .main-content { display: flex; flex: 1; overflow: hidden; }
+        
+        /* Sidebar */
+        .sidebar {
+            width: 350px;
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--border);
+            overflow-y: auto;
+            padding: 20px 10px;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.02);
+        }
+        details { margin-left: 15px; }
+        summary {
+            padding: 4px;
+            cursor: pointer;
+            list-style: none;
+            display: flex;
+            align-items: center;
+        }
+        summary::-webkit-details-marker { display: none; }
+        .toggle-arrow {
+            display: inline-block;
+            width: 20px;
+            color: var(--text-light);
+            font-size: 0.7rem;
+            transition: transform 0.2s;
+            text-align: center;
+        }
+        details[open] > summary > .toggle-arrow { transform: rotate(90deg); }
+        
+        .term-label {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.95rem;
+            flex: 1;
+        }
+        .term-label:hover { background: #f1f5f9; }
+        
+        .active-node {
+            background-color: #e0f2fe !important;
+            color: #0369a1;
+            font-weight: 600;
+        }
+        .leaf-node { margin-left: 20px; }
+        .leaf-node::before { content: '•'; font-size: 1.2rem; margin-right: 8px; color: var(--text-light); }
+
+        /* Details Panel */
+        .details-panel {
+            flex: 1;
+            padding: 40px;
+            overflow-y: auto;
+            position: relative;
+        }
+        .content-card {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        /* Navigation Controls */
+        .nav-controls {
+            max-width: 900px;
+            margin: 0 auto 20px auto;
+            display: flex;
+            gap: 10px;
+        }
+        .back-btn {
+            background: white;
+            border: 1px solid var(--border);
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--text-main);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .back-btn:hover:not(:disabled) { background: #f8fafc; }
+        .back-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .breadcrumb {
+            font-size: 0.85rem;
+            color: var(--text-light);
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .term-title { margin: 0 0 5px 0; font-size: 2rem; color: var(--primary); }
+        .term-id {
+            display: inline-block;
+            background: #f1f5f9;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            color: var(--text-light);
+            margin-bottom: 25px;
+            font-size: 0.9rem;
+        }
+        
+        .section-title {
+            font-size: 1.1rem;
+            color: var(--text-main);
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 8px;
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+        
+        .meta-grid {
+            display: grid;
+            grid-template-columns: 150px 1fr;
+            gap: 15px 20px;
+            margin-bottom: 30px;
+        }
+        .meta-label { font-weight: 600; color: var(--text-light); }
+        
+        /* Relationships Styles */
+        .rel-list { list-style: none; padding: 0; margin: 0; }
+        .rel-item {
+            display: flex;
+            align-items: baseline;
+            padding: 10px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .rel-type {
+            width: 180px;
+            font-family: monospace;
+            color: #d97706;
+            font-weight: 600;
+        }
+        .rel-target {
+            color: var(--link);
+            cursor: pointer;
+            font-weight: 500;
+            text-decoration: none;
+            padding: 2px 6px;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+        .rel-target:hover {
+            background: #e0f2fe;
+            text-decoration: underline;
+        }
+        .empty-state { color: var(--text-light); font-style: italic; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header class="header">
+            <h1>Ontology Browser <span style="font-weight: 300; opacity: 0.8">| Curriculum & SDGs</span></h1>
+            <div class="header-links">
+                <a href="course_examples.html">Data Graph View</a><a href="recommendation_engine.html">CAMPUS Engine ➔</a>
+            </div>
+        </header>
+        
+        <main class="main-content">
+            <aside class="sidebar" id="sidebar-tree"></aside>
+            <section class="details-panel">
+                <div class="nav-controls">
+                    <button class="back-btn" id="btn-back" onclick="goBack()" disabled>
+                        <span>◀</span> Back
+                    </button>
+                </div>
+                <div id="details-view"></div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const classData = [{"id": "Root", "parent": null, "desc": "Ontology Root", "example": ""}, {"id": "EducationalResource", "parent": "Root", "desc": "Educational structures and materials", "example": ""}, {"id": "SustainabilityConcept", "parent": "Root", "desc": "Core sustainability goals and principles", "example": ""}, {"id": "Course", "parent": "EducationalResource", "desc": "Complete academic course with title, code, credits, duration", "example": "CV810 Advanced Bridge Engineering"}, {"id": "Module", "parent": "Course", "desc": "Component/unit within a course, typically 1-4 weeks", "example": "Sustainable Materials in Bridge Construction"}, {"id": "Unit", "parent": "Module", "desc": "Optional intermediate container for large modules", "example": "Resilience Design unit within Module 4"}, {"id": "LearningOutcome", "parent": "Course", "desc": "Specific, measurable learning objective mapped to Bloom's taxonomy", "example": "Apply LCA principles to bridge materials"}, {"id": "Activity", "parent": "LearningOutcome", "desc": "General learning task or exercise", "example": "LCA workshop for concrete alternatives"}, {"id": "Session", "parent": "Activity", "desc": "Scheduled teaching event/class meeting hosting multiple activities", "example": "Lecture + Workshop"}, {"id": "Workshop", "parent": "Activity", "desc": "Hands-on, intensive session", "example": "Carbon footprinting lab (3 hours)"}, {"id": "Discussion", "parent": "Activity", "desc": "Asynchronous or synchronous dialogue", "example": "Online forum on sustainable transport"}, {"id": "Debate", "parent": "Discussion", "desc": "Structured pro/con dialogue on a focused motion", "example": "Dam vs. free-flowing river debate"}, {"id": "CaseStudy", "parent": "Activity", "desc": "Analysis of a real or realistic scenario", "example": "Mumbai's waste management crisis case study"}, {"id": "RolePlay", "parent": "Activity", "desc": "Simulation where students adopt stakeholder roles", "example": "Community vs. developer negotiation role-play"}, {"id": "FieldVisit", "parent": "Activity", "desc": "Visit to a real site for direct observation", "example": "Bridge site inspection, wastewater plant visit"}, {"id": "GuestLecture", "parent": "Activity", "desc": "Session led by external practitioner or expert", "example": "Industry sustainability manager presentation"}, {"id": "Assessment", "parent": "LearningOutcome", "desc": "General evaluation method for learning outcomes", "example": "Sustainability impact report (20% of grade)"}, {"id": "Assignment", "parent": "Assessment", "desc": "Graded or ungraded submitted task", "example": "Bridge design with LCA report"}, {"id": "Quiz", "parent": "Assessment", "desc": "Short, mostly auto-graded checks", "example": "5-question SDG concept quiz"}, {"id": "Exam", "parent": "Assessment", "desc": "High-stakes summative evaluation", "example": "Final examination (2 hours, 40% weight)"}, {"id": "Project", "parent": "Assessment", "desc": "Multi-step, often group-based work", "example": "Design a resilient bridge for flood-prone area"}, {"id": "Portfolio", "parent": "Assessment", "desc": "Collection of student artefacts over time", "example": "Design portfolio + reflection journal"}, {"id": "Competency", "parent": "EducationalResource", "desc": "Sustainability competencies developed", "example": "Systems Thinking, Normative Thinking"}, {"id": "Rubric", "parent": "EducationalResource", "desc": "Structured criteria for evaluating work", "example": "5-point rubric for sustainability reporting"}, {"id": "Resource", "parent": "EducationalResource", "desc": "Supporting material not itself an activity", "example": "IPCC reports, ISO 14040 LCA standard"}, {"id": "Reading", "parent": "Resource", "desc": "Articles, chapters, reports, standards", "example": "GHG Protocol document"}, {"id": "Media", "parent": "Resource", "desc": "Video, podcast, interactive visualizations", "example": "TED talk on sustainable cities"}, {"id": "Dataset", "parent": "Resource", "desc": "Data used in analysis tasks", "example": "Municipal emissions inventory"}, {"id": "Template", "parent": "EducationalResource", "desc": "Pre-structured document/form", "example": "LCA spreadsheet template"}, {"id": "Concept", "parent": "EducationalResource", "desc": "Atomic ideas/building blocks", "example": "Life Cycle Assessment"}, {"id": "ThresholdConcept", "parent": "Concept", "desc": "Transformative, troublesome ideas", "example": "Externalities, Carrying Capacity"}, {"id": "Topic", "parent": "Concept", "desc": "Course-level topic bundles", "example": "Bridge durability and maintenance"}, {"id": "PedagogicalApproach", "parent": "EducationalResource", "desc": "Teaching methodology labels", "example": "Project-Based Learning"}, {"id": "SDG", "parent": "SustainabilityConcept", "desc": "UN Sustainable Development Goal (1-17)", "example": "SDG 9: Industry, Innovation & Infrastructure"}, {"id": "Target", "parent": "SDG", "desc": "Specific target under each SDG (169 total)", "example": "9.4: Upgrade infrastructure to be sustainable"}, {"id": "Indicator", "parent": "Target", "desc": "Measurable indicator for tracking progress (231 total)", "example": "9.4.1: CO2 emissions per unit of value added"}, {"id": "SustainabilityPrinciple", "parent": "SustainabilityConcept", "desc": "Core sustainability concepts/principles", "example": "Circular Economy, Just Transition"}];
+        const propertyData = [{"property": "alignsWith", "domain": ["LearningOutcome", "Activity"], "range": ["Target", "Indicator"], "desc": "Direct semantic alignment"}, {"property": "contributes_to", "domain": ["Course", "Module"], "range": ["SDG", "Target"], "desc": "Course contributes to SDG achievement"}, {"property": "prerequisite_for", "domain": ["Module", "LearningOutcome"], "range": ["Module", "LearningOutcome"], "desc": "Learning sequence dependency"}, {"property": "related_to", "domain": ["Course", "Module", "LearningOutcome", "Activity", "SDG", "Target", "Indicator", "SustainabilityPrinciple"], "range": ["Course", "Module", "LearningOutcome", "Activity", "SDG", "Target", "Indicator", "SustainabilityPrinciple"], "desc": "General semantic relatedness"}, {"property": "hasModule", "domain": ["Course"], "range": ["Module"], "desc": "Course structure"}, {"property": "hasLearningOutcome", "domain": ["Module", "Course"], "range": ["LearningOutcome"], "desc": "Learning objectives"}, {"property": "hasActivity", "domain": ["LearningOutcome"], "range": ["Activity"], "desc": "Teaching activities"}, {"property": "hasAssessment", "domain": ["LearningOutcome"], "range": ["Assessment"], "desc": "Evaluation methods"}, {"property": "implements", "domain": ["Activity"], "range": ["SustainabilityPrinciple"], "desc": "Activity type"}, {"property": "measures", "domain": ["Assessment"], "range": ["Indicator"], "desc": "Assessment links to indicators"}];
+        
+        let currentTermId = 'Course';
+        let historyStack = []; // Array to keep track of navigation history
+
+        // --- 1. Build the Sidebar Tree ---
+        function buildTree(parentId) {
+            const children = classData.filter(c => c.parent === parentId);
+            if (children.length === 0) return '';
+            
+            let html = '';
+            children.forEach(child => {
+                const childTree = buildTree(child.id);
+                const isLeaf = childTree === '';
+                
+                if (isLeaf) {
+                    html += `<div class="term-label leaf-node" id="node-${child.id}" onclick="selectTerm('${child.id}')">${child.id}</div>`;
+                } else {
+                    // By clicking the arrow (default summary behavior), it expands/collapses. 
+                    // By clicking the term-label, it selects the term.
+                    html += `<details open id="details-${child.id}">
+                                <summary>
+                                    <span class="toggle-arrow">▶</span>
+                                    <span class="term-label" id="node-${child.id}" onclick="selectTerm('${child.id}', event)">${child.id}</span>
+                                </summary>
+                                ${childTree}
+                             </details>`;
+                }
+            });
+            return html;
+        }
+
+        // --- Navigation History Logic ---
+        function selectTerm(termId, event, isBackAction = false) {
+            if (event) {
+                event.stopPropagation(); // Prevents <details> from collapsing when clicking the text
+                event.preventDefault();
+            }
+            
+            if (termId === currentTermId) return;
+
+            if (!isBackAction) {
+                historyStack.push(currentTermId); // Save previous term
+            }
+            
+            currentTermId = termId;
+            updateBackButton();
+            renderDetails(currentTermId);
+        }
+
+        function goBack() {
+            if (historyStack.length > 0) {
+                const prevTerm = historyStack.pop();
+                selectTerm(prevTerm, null, true);
+            }
+        }
+
+        function updateBackButton() {
+            const btn = document.getElementById('btn-back');
+            if (historyStack.length > 0) {
+                btn.disabled = false;
+                btn.innerHTML = `<span>◀</span> Back to ${historyStack[historyStack.length - 1]}`;
+            } else {
+                btn.disabled = true;
+                btn.innerHTML = `<span>◀</span> Back`;
+            }
+        }
+
+        // --- 2. Build the Breadcrumbs ---
+        function getBreadcrumbs(termId) {
+            let path = [];
+            let current = classData.find(c => c.id === termId);
+            while (current) {
+                path.unshift(current.id);
+                current = classData.find(c => c.id === current.parent);
+            }
+            return path.join(' > ');
+        }
+
+        // --- 3. Render Term Details ---
+        
+        function getAncestors(termId) {
+            let ancestors = [termId];
+            let current = classData.find(c => c.id === termId);
+            while (current && current.parent) {
+                ancestors.push(current.parent);
+                current = classData.find(c => c.id === current.parent);
+            }
+            return ancestors;
+        }
+        
+        function renderDetails(termId) {
+            const term = classData.find(c => c.id === termId);
+            if (!term) return;
+            
+            const ancestors = getAncestors(termId);
+            
+            // Subclass reasoning: If my parent has an outgoing property, I have it too.
+            const outgoing = propertyData.filter(p => p.domain.some(d => ancestors.includes(d)) || p.domain.includes('All classes'));
+            
+            // Subclass reasoning for incoming: If my parent is the range, I can be targeted too.
+            const incoming = propertyData.filter(p => p.range.some(r => ancestors.includes(r)) || p.range.includes('All classes'));
+
+            const viewContainer = document.getElementById('details-view');
+
+            
+            let outgoingHtml = outgoing.length > 0 ? outgoing.map(p => {
+                let targets = p.range.includes('All classes') ? ['All other classes'] : p.range;
+                const targetLinks = targets.map(t => t === 'All other classes' ? t : `<a class="rel-target" onclick="selectTerm('${t}')">${t}</a>`).join(', ');
+                return `<li class="rel-item">
+                            <span class="rel-type">out: ${p.property}</span>
+                            <span>${targetLinks}</span>
+                        </li>`;
+            }).join('') : '<li class="empty-state">No outgoing relationships defined.</li>';
+
+            let incomingHtml = incoming.length > 0 ? incoming.map(p => {
+                let sources = p.domain.includes('All classes') ? ['All other classes'] : p.domain;
+                const sourceLinks = sources.map(d => d === 'All other classes' ? d : `<a class="rel-target" onclick="selectTerm('${d}')">${d}</a>`).join(', ');
+                return `<li class="rel-item">
+                            <span class="rel-type">in: ${p.property}</span>
+                            <span>${sourceLinks}</span>
+                        </li>`;
+            }).join('') : '<li class="empty-state">No incoming relationships defined.</li>';
+
+            viewContainer.innerHTML = `
+                <div class="content-card">
+                    <div class="breadcrumb">${getBreadcrumbs(termId)}</div>
+                    <h2 class="term-title">${term.id}</h2>
+                    <div class="term-id">Class URI: http://ontology.edu/${term.id}</div>
+                    
+                    <div class="meta-grid">
+                        <div class="meta-label">Description</div>
+                        <div>${term.desc}</div>
+                        
+                        <div class="meta-label">Example Instance</div>
+                        <div><em>${term.example || 'None provided'}</em></div>
+                        
+                        <div class="meta-label">Parent Class</div>
+                        <div>${term.parent ? `<a class="rel-target" style="padding:0;" onclick="selectTerm('${term.parent}')">${term.parent}</a>` : 'Root'}</div>
+                    </div>
+
+                    <h3 class="section-title">Outgoing Relationships (Properties) <a href="help.html#ontology-relations" target="_blank" style="font-size:0.8rem; text-decoration:none; color:#0ea5e9;">[?] Help</a></h3>
+                    <ul class="rel-list">
+                        ${outgoingHtml}
+                    </ul>
+
+                    <h3 class="section-title">Incoming Relationships (Usage) <a href="help.html#ontology-relations" target="_blank" style="font-size:0.8rem; text-decoration:none; color:#0ea5e9;">[?] Help</a></h3>
+                    <ul class="rel-list">
+                        ${incomingHtml}
+                    </ul>
+                </div>
+            `;
+            
+            // Highlight in tree
+            document.querySelectorAll('.term-label').forEach(el => el.classList.remove('active-node'));
+            const treeNode = document.getElementById(`node-${termId}`);
+            if (treeNode) {
+                treeNode.classList.add('active-node');
+                // Ensure parent details are open
+                let parentDetail = treeNode.closest('details');
+                while (parentDetail) {
+                    parentDetail.setAttribute('open', true);
+                    parentDetail = parentDetail.parentElement.closest('details');
+                }
+                treeNode.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+
+        // Initialize
+        document.getElementById('sidebar-tree').innerHTML = buildTree('Root');
+        renderDetails(currentTermId);
+
+    </script>
+</body>
+</html>

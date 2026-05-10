@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ontology & Framework Help</title>
+    <style>
+        :root { --primary: #1a5f7a; --secondary: #22a699; --bg: #f8f9fa; --border: #e2e8f0; --text: #334155; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; line-height: 1.6; }
+        .header { background: var(--primary); color: white; padding: 20px 40px; }
+        .header h1 { margin: 0; }
+        .container { display: flex; max-width: 1200px; margin: 0 auto; padding: 40px 20px; gap: 40px; }
+        .nav { width: 250px; flex-shrink: 0; }
+        .nav a { display: block; padding: 10px; color: var(--primary); text-decoration: none; border-left: 3px solid transparent; }
+        .nav a:hover { background: #e0f2fe; border-left-color: var(--primary); }
+        .content { flex: 1; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        h2 { color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-top: 40px; }
+        h2:first-child { margin-top: 0; }
+        h3 { color: var(--secondary); margin-top: 25px; }
+        .code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-family: monospace; color: #d97706; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Documentation & Help</h1>
+        <p style="margin:5px 0 0 0; opacity:0.8;">Understanding the Curriculum Sustainability Ontology</p>
+    </div>
+    <div class="container">
+        <div class="nav">
+            <strong>Ontology Browser</strong>
+            <a href="#ontology-basics">What is an Ontology?</a>
+            <a href="#ontology-relations">Relationships Explained</a>
+            <a href="#ontology-sdg">SDG Objectives</a>
+            <br/><strong>Course Graph</strong>
+            <a href="#graph-nodes">Visual Graph View</a>
+            <a href="#graph-table">Tabular Data View</a>
+            <br/><strong>Educator Toolkit</strong>
+            <a href="#toolkit-campus">CAMPUS Framework</a>
+            <a href="#toolkit-assess">Assessments</a>
+        </div>
+        <div class="content">
+            <h2 id="ontology-basics">1. What is the Curriculum Ontology?</h2>
+            <p>An ontology is a formal way to categorize and map entities in a specific domain. Just like biologists map genes to specific functions, this system maps Educational structures (like <span class="code">Course</span> and <span class="code">Module</span>) directly to Sustainability concepts (like <span class="code">SDG 6</span> or <span class="code">Life-Cycle Assessment</span>).</p>
+            
+            <h2 id="ontology-relations">2. Outgoing vs. Incoming Relationships</h2>
+            <p>The ontology relies on <strong>RDF-style Subject-Predicate-Object</strong> relationships. Subclasses inherit these relationships dynamically.</p>
+            <ul>
+                <li><strong>Outgoing Relationships:</strong> Properties where the current term acts as the Subject. E.g., If you view <span class="code">Assessment</span>, its outgoing relationship is <span class="code">evaluates</span> (pointing to Learning Outcomes). Since <span class="code">Quiz</span> is a child of Assessment, it automatically inherits this outgoing property.</li>
+                <li><strong>Incoming Relationships:</strong> Properties where the current term acts as the Object. E.g., If you view <span class="code">Activity</span>, its incoming relationship is <span class="code">hasActivity</span> (because a Learning Outcome "has" an Activity).</li>
+            </ul>
+
+            <h2 id="ontology-sdg">3. SDG Learning Objectives</h2>
+            <p>The system maps UN-official objectives using three pedagogical domains:</p>
+            <ul>
+                <li><strong>Cognitive:</strong> Understanding the knowledge behind the SDG.</li>
+                <li><strong>Socio-emotional:</strong> Advocating and building awareness.</li>
+                <li><strong>Behavioural:</strong> Taking direct action or designing solutions.</li>
+            </ul>
+
+            <h2 id="graph-nodes">4. Visual Graph View</h2>
+            <p>The D3.js Knowledge Graph visualizes the literal RDF triplets of a specific course. Nodes are colored by their category (Blue for Curriculum, Green for Sustainability). You can drag nodes to explore how a specific <em>Module</em> branches out into both <em>Activities</em> and <em>SDG Targets</em> simultaneously.</p>
+
+            <h2 id="toolkit-campus">5. The CAMPUS Framework</h2>
+            <p>The recommendation engine structures course upgrades using the CAMPUS methodology:</p>
+            <ul>
+                <li><strong>C</strong>onfirm SDGs</li>
+                <li><strong>A</strong>lign to content</li>
+                <li><strong>M</strong>ap to Credit</li>
+                <li><strong>P</strong>erform assessments</li>
+                <li><strong>U</strong>pdate strategies</li>
+                <li><strong>S</strong>ustain improvements</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

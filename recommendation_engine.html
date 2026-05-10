@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CAMPUS Framework Recommendation Engine</title>
+    <style>
+        :root {
+            --primary: #2c5e3b;
+            --secondary: #4a8a5f;
+            --bg: #f4f7f6;
+            --sidebar-bg: #ffffff;
+            --border: #e2e8f0;
+            --text-main: #334155;
+            --text-light: #64748b;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            background-color: var(--bg);
+            color: var(--text-main);
+            overflow: hidden;
+        }
+        .app-container { display: flex; flex-direction: column; width: 100%; }
+        .header {
+            background: var(--primary);
+            color: white;
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            z-index: 10;
+        }
+        .header h1 { margin: 0; font-size: 1.2rem; font-weight: 600; letter-spacing: 0.5px; }
+        .header-links a { color: white; text-decoration: none; background: rgba(255,255,255,0.2); padding: 6px 12px; border-radius: 4px; font-size: 0.9rem; transition: background 0.2s; margin-left: 10px; }
+        .header-links a:hover { background: rgba(255,255,255,0.3); }
+        
+        .main-content { display: flex; flex: 1; overflow: hidden; }
+        
+        /* Sidebar Tree */
+        .sidebar { width: 350px; background: var(--sidebar-bg); border-right: 1px solid var(--border); overflow-y: auto; box-shadow: 2px 0 5px rgba(0,0,0,0.02); }
+        
+        .sidebar-header { padding: 15px 20px 10px 20px; font-size: 0.85rem; text-transform: uppercase; font-weight: 700; color: var(--text-light); border-bottom: 1px solid var(--border); }
+        
+        details.course-tree { border-bottom: 1px solid var(--border); }
+        details.course-tree summary {
+            padding: 15px 20px;
+            font-weight: 600;
+            color: var(--primary);
+            cursor: pointer;
+            background: #f8fafc;
+            outline: none;
+            display: flex;
+            align-items: center;
+        }
+        details.course-tree summary:hover { background: #f1f5f9; }
+        details.course-tree summary::-webkit-details-marker { display: none; }
+        details.course-tree summary::before {
+            content: '▶';
+            font-size: 0.7rem;
+            color: var(--text-light);
+            margin-right: 10px;
+            transition: transform 0.2s;
+            display: inline-block;
+        }
+        details.course-tree[open] summary::before { transform: rotate(90deg); }
+        
+        .module-btn {
+            display: block;
+            width: 100%;
+            text-align: left;
+            background: white;
+            border: none;
+            padding: 12px 20px 12px 40px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--text-main);
+            cursor: pointer;
+            transition: background 0.2s;
+            border-left: 4px solid transparent;
+            box-sizing: border-box;
+            position: relative;
+        }
+        .module-btn::before { content: '•'; color: #cbd5e1; position: absolute; left: 25px; font-size: 1.2rem; line-height: 1; top: 12px; }
+        .module-btn:hover { background: #f1f5f9; }
+        .module-btn.active { background: #eef2f6; border-left: 4px solid var(--primary); color: var(--primary); font-weight: 600; }
+        .module-btn.active::before { color: var(--primary); }
+
+        /* Main Details Panel */
+        .details-panel { flex: 1; padding: 40px; overflow-y: auto; position:relative; scroll-behavior: smooth;}
+        .content-card { background: white; border-radius: 8px; padding: 40px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); max-width: 1000px; margin: 0 auto; }
+        
+        .topic-title { margin: 0 0 15px 0; font-size: 2.2rem; color: var(--primary); }
+        
+        .tag-container { margin-bottom: 25px; display: flex; flex-wrap: wrap; gap: 8px; }
+        .tag { display: inline-block; padding: 5px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; }
+        .tag.sdg { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+        .tag.target { background: #e0f2fe; color: #075985; border: 1px solid #bae6fd; }
+        .tag.concept { background: #f3f4f6; color: #4b5563; border: 1px solid #e5e7eb; }
+        
+        .sdg-link { color: inherit; text-decoration: none; }
+        .sdg-link:hover { text-decoration: underline; }
+        
+        /* Wizard Steps */
+        .step-container { margin-top: 40px; }
+        .step-card {
+            display: flex;
+            margin-bottom: 30px;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+        }
+        .step-number {
+            background: var(--primary);
+            color: white;
+            padding: 20px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+        }
+        .step-content { padding: 25px; flex: 1; }
+        .step-content h3 { margin: 0 0 15px 0; color: var(--primary); font-size: 1.3rem; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px;}
+        
+        p { line-height: 1.6; margin-bottom: 15px; }
+        
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 10px; }
+        .info-box { background: #f8fafc; padding: 20px; border-radius: 6px; border: 1px solid var(--border); }
+        .info-box h4 { margin: 0 0 10px 0; color: #334155; }
+        
+        /* Activity Tabs */
+        .activity-tabs { display: flex; gap: 10px; margin-bottom: 15px; border-bottom: 2px solid var(--border); padding-bottom: 10px; }
+        .act-tab-btn { background: #f1f5f9; border: 1px solid #cbd5e1; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: 600; color: #64748b; transition: 0.2s; }
+        .act-tab-btn.active { background: var(--secondary); color: white; border-color: var(--secondary); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        
+        .activity-card { background: white; border: 1px solid var(--border); border-left: 4px solid var(--secondary); padding: 20px; border-radius: 4px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+        .activity-card.project { border-left-color: #d97706; }
+        .activity-type { font-size: 0.8rem; text-transform: uppercase; font-weight: 700; color: var(--text-light); margin-bottom: 8px; }
+        .activity-text { margin: 0; font-size: 0.95rem; line-height: 1.5; }
+        
+        /* CAMPUS List */
+        .campus-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        .campus-item {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: flex-start;
+        }
+        .campus-letter { display: inline-block; min-width: 28px; height: 28px; background: var(--primary); color: white; text-align: center; line-height: 28px; border-radius: 50%; font-weight: bold; margin-right: 12px; font-size: 0.9rem; }
+        .campus-text { font-size: 0.95rem; line-height: 1.5; }
+        
+        /* Assessment Highlights */
+        .assessment-block { background: #fff1f2; border: 1px solid #fecaca; padding: 20px; border-radius: 6px; }
+        .assessment-block h4 { color: #b91c1c; margin: 0 0 10px 0; display:flex; align-items:center; gap:8px;}
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header class="header">
+            <h1>CAMPUS Recommendation Engine <span style="font-weight: 300; opacity: 0.8">| Educator Toolkit</span></h1>
+            <div class="header-links">
+                <a href="help.html" target="_blank" style="background:#0369a1;">[?] Help Guide</a>
+                <a href="index.html">⌂ Ontology Browser</a>
+                <a href="course_examples.html">Data Graph View</a>
+            </div>
+        </header>
+        
+        <main class="main-content">
+            <aside class="sidebar">
+                <div class="sidebar-header">Select Course & Module</div>
+                <div id="sidebar-content">
+                    <!-- Populated by JS -->
+                </div>
+            </aside>
+            <section class="details-panel" id="scroll-panel">
+                <div class="content-card" id="engine-view">
+                    <!-- Populated by JS -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const engineData = {"CE214": {"course_name": "Civil Eng - Fluid Mechanics", "modules": {"PipeFlow": {"menu_title": "3. Pipe Flow Networks", "topic": "Pipe Flow Networks & The Energy-Water Nexus", "sdgs": ["SDG 6", "SDG 9"], "targets": ["Target 6.4", "Target 9.4"], "concepts": ["Water Stewardship", "Energy-Water Nexus", "Leakage Reduction", "Life-Cycle Assessment"], "challenges": "Aging urban water grids lose up to 30% of treated water through leaks. Furthermore, municipal water pumping consumes massive amounts of electricity. Sub-optimal pipe design exacerbates friction, requiring more pump energy and increasing the grid's carbon footprint.", "solutions": "Predictive maintenance through IoT flow sensors; installing energy-recovery turbines in gravity-fed drop shafts; upgrading to low-friction, high-durability pipe materials.", "instructional": "Shift the focus of the Hazen-Williams equation from a pure friction calculation to an 'energy-penalty' metric. Teach students how pipe material degradation exponentially increases the carbon footprint of municipal water distribution over a 50-year lifespan.", "assessments_detail": {"title": "Sustainability Assessments: LCA & Impact Rubric", "desc": "Evaluate students based on their Life-Cycle Assessment accuracy and their justification of carbon-reduction proposals."}, "activities": [{"title": "Activity 1: Pumping Energy Analysis", "ug": "Measure pressure drops in varying pipe materials (PVC vs. cast iron). Calculate the annualized energy cost and carbon emissions required to pump 1 MLD through each material.", "pg": "Model a city's water distribution network using EPANET. Optimize pump scheduling algorithms to minimize peak-grid energy usage.", "project": "Design a retrofit strategy for the university campus water network to reduce overall pumping energy by 15%."}], "campus": {"c": "Explicitly link pipe friction equations to SDG 6 & 9 in the syllabus.", "a": "Map standard fluid dynamic formulas to real-world energy consumption and GHG emissions.", "m": "Allocate 15% of the final grade to the campus retrofit mini-project.", "p": "Use the Sustainability Impact Rubric evaluating both hydraulic accuracy and carbon-reduction feasibility.", "u": "Invite a municipal water infrastructure engineer for a guest lecture.", "s": "Share the best student campus retrofit designs with the university facilities team."}}}}, "CS203": {"course_name": "Computer Sci - Data Structures", "modules": {"TreesGraphs": {"menu_title": "3. Trees & Graphs", "topic": "Graph Algorithms for Green Logistics", "sdgs": ["SDG 9", "SDG 13"], "targets": ["Target 9.2", "Target 13.2"], "concepts": ["Algorithmic Efficiency", "Green Routing", "Carbon-Aware Computing"], "challenges": "Global delivery logistics and data center network routing consume massive amounts of energy. Sub-optimal pathfinding algorithms result in higher fuel consumption for fleets and unnecessary electricity draw in server farms.", "solutions": "Carbon-aware routing protocols that shift compute loads based on grid renewable percentages; logistics algorithms that minimize left-turns and idle time.", "instructional": "When teaching Dijkstra's or A* algorithms, redefine 'edge weight'. Instead of just 'distance', introduce edge weights representing 'carbon emission cost' or 'energy consumption', showing how algorithms can optimize for sustainability.", "assessments_detail": {"title": "Sustainability Assessments: Energy Efficiency Code Review", "desc": "Grade submitted code not just on execution speed (Big-O time), but on the estimated computational energy footprint."}, "activities": [{"title": "Option 1: Fleet Logistics", "ug": "Implement a graph traversal algorithm to find the most fuel-efficient delivery route for a fleet of electric vehicles, factoring in elevation changes.", "pg": "Design a heuristic routing algorithm for a dynamic ridesharing network that minimizes total fleet GHG emissions while adhering to strict time-window constraints.", "project": "Develop a 'Green Maps' API prototype offering users the lowest-carbon route (combining walking, public transit, and micro-mobility)."}, {"title": "Option 2: Network Topology", "ug": "Simulate network traffic across different graph topologies to minimize hop count and router energy.", "pg": "Develop a spanning tree protocol that powers down redundant data center links during low-traffic periods to save power.", "project": "Propose a green network topology for the university's cloud infrastructure that reduces energy by 10%."}], "campus": {"c": "Connect algorithmic Big-O complexity to physical energy consumption (SDG 13).", "a": "Use carbon-cost edge weights in standard graph theory lessons.", "m": "The Green Maps API prototype acts as the mid-term practical exam.", "p": "Implement the 'Energy Efficiency Code Review' in your grading scripts.", "u": "Incorporate case studies from logistics companies reducing idle times.", "s": "Build a repository of student green algorithms for future cohorts to optimize further."}}, "SortingSearching": {"menu_title": "4. Sorting & Searching", "topic": "Optimizing Data Center Search Loads", "sdgs": ["SDG 9", "SDG 12"], "targets": ["Target 9.4", "Target 12.2"], "concepts": ["Computational Optimization", "Data Minimization"], "challenges": "Inefficient database queries waste CPU cycles and RAM. At a global scale, these milliseconds of waste translate into massive MW/h electricity draws in data centers.", "solutions": "Advanced indexing, caching, and implementing efficient sorting to reduce read operations.", "instructional": "Link Big-O complexity directly to server wattages. Show how O(n^2) algorithms drain batteries on mobile devices significantly faster than O(n log n) equivalents.", "assessments_detail": {"title": "Sustainability Assessments: Optimization Benchmarking", "desc": "Evaluate the difference in power consumed during standard brute force versus highly optimized sorting of a 1M item array."}, "activities": [{"title": "Activity 1: Search Energy Benchmarking", "ug": "Compare the execution time and estimated CPU energy of Linear vs Binary search on an array of 1 Billion records.", "pg": "Implement a distributed sorting algorithm (like MapReduce) and calculate its carbon footprint compared to a single-node sort.", "project": "Audit an open-source database application's sorting algorithm for energy inefficiencies and propose a patch."}], "campus": {"c": "Explicitly link hardware energy use to software sorting complexity.", "a": "Update Big-O notation tests to include battery-drain questions.", "m": "Include the benchmarking report in the standard lab grading.", "p": "Assess students' ability to refactor inefficient legacy code using the Optimization Benchmark.", "u": "Emphasize code refactoring techniques during live coding sessions.", "s": "Contribute the most efficient sorting patches to real open-source projects."}}}}, "ME209": {"course_name": "Mechanical Eng - Thermodynamics", "modules": {"GasPower": {"menu_title": "3. Gas Power Cycles", "topic": "Power Cycles & Decarbonization", "sdgs": ["SDG 7", "SDG 12"], "targets": ["Target 7.2", "Target 12.2"], "concepts": ["Thermal Efficiency", "Decarbonization", "Waste Heat Recovery", "Alternative Fuels"], "challenges": "Traditional power grids rely heavily on fossil-fuel Rankine and Brayton cycles. These systems suffer from significant heat rejection (thermal pollution) and emit massive GHGs.", "solutions": "Cogeneration (CHP) plants, integration of green hydrogen, supercritical CO2 power cycles, and high-efficiency geothermal heat pumps.", "instructional": "Transition from teaching idealized, reversible cycles to analyzing real-world, irreversible cycles with alternative fuels (e.g., green hydrogen, biomass). Emphasize exergy (available work) destruction.", "assessments_detail": {"title": "Sustainability Assessments: Exergy Analysis Portfolio", "desc": "Grade portfolios on the student's ability to identify not just the energy efficiency, but the 'exergy destruction' pinpointing exactly where sustainability is lost."}, "activities": [{"title": "Activity 1: Thermal Efficiency comparison", "ug": "Compare the thermal efficiency and carbon output per MW of a natural gas combined cycle plant versus a concentrated solar power (CSP) Rankine cycle.", "pg": "Design a cogeneration (Combined Heat and Power) system for an industrial park that utilizes waste heat to drive a secondary organic Rankine cycle.", "project": "Conduct an exergy analysis of the university's central heating plant and propose a viable integration of geothermal or waste-heat recovery systems."}], "campus": {"c": "Ground the laws of thermodynamics in the urgent need for SDG 7 (Clean Energy).", "a": "Integrate alternative fuel properties directly into standard property tables and equations.", "m": "Exergy analysis project forms the capstone of the module.", "p": "Use the Exergy Analysis Portfolio rubric to evaluate environmental impact metrics.", "u": "Shift focus from purely fossil-centric examples to renewable thermodynamic systems in problem sets.", "s": "Partner with the campus energy manager to provide real plant data for student projects."}}}}};
+        let currentModuleData = null;
+
+        function linkifySDGs(text) {
+            if (typeof text !== 'string') return text;
+            let res = text;
+            res = res.replace(/(?:SDG|Goal)\s*(\d+)/gi, '<a href="https://sdgs.un.org/goals/goal$1" target="_blank" class="sdg-link" title="Open UN SDG Goal $1">$&</a>');
+            res = res.replace(/Target\s*(\d+)\.(\d+)/gi, '<a href="https://sdgs.un.org/goals/goal$1#targets_and_indicators" target="_blank" class="sdg-link" title="Open UN SDG Target $1.$2">$&</a>');
+            return res;
+        }
+
+        function initSidebar() {
+            const list = document.getElementById('sidebar-content');
+            
+            Object.keys(engineData).forEach(courseId => {
+                const course = engineData[courseId];
+                
+                const details = document.createElement('details');
+                details.className = 'course-tree';
+                details.id = `tree-${courseId}`;
+                
+                const summary = document.createElement('summary');
+                summary.innerText = `${courseId} - ${course.course_name}`;
+                details.appendChild(summary);
+                
+                Object.keys(course.modules).forEach(modId => {
+                    const mod = course.modules[modId];
+                    const btn = document.createElement('button');
+                    btn.className = 'module-btn';
+                    btn.id = `btn-${courseId}-${modId}`;
+                    btn.onclick = () => loadModule(courseId, modId);
+                    btn.innerText = mod.menu_title;
+                    details.appendChild(btn);
+                });
+                
+                list.appendChild(details);
+            });
+        }
+
+        function loadModule(courseId, modId, scrollHash = null) {
+            document.getElementById(`tree-${courseId}`).setAttribute('open', true);
+            
+            document.querySelectorAll('.module-btn').forEach(b => b.classList.remove('active'));
+            const activeBtn = document.getElementById(`btn-${courseId}-${modId}`);
+            if (activeBtn) activeBtn.classList.add('active');
+            
+            currentModuleData = engineData[courseId].modules[modId];
+            const data = currentModuleData;
+            const view = document.getElementById('engine-view');
+            
+            const sdgTags = data.sdgs.map(s => `<span class="tag sdg">${linkifySDGs(s)}</span>`).join('');
+            const targetTags = data.targets.map(t => `<span class="tag target">${linkifySDGs(t)}</span>`).join('');
+            const conceptTags = data.concepts.map(c => `<span class="tag concept">${c}</span>`).join('');
+            
+            let activityHtml = '';
+            if (data.activities.length > 1) {
+                activityHtml += `<div class="activity-tabs" id="act-tabs">`;
+                data.activities.forEach((act, idx) => {
+                    activityHtml += `<button class="act-tab-btn ${idx===0 ? 'active':''}" onclick="switchActivity(${idx})">${act.title}</button>`;
+                });
+                activityHtml += `</div>`;
+            }
+            activityHtml += `<div id="activity-content"></div>`;
+            
+            
+            
+        
+        // Curated Objectives explicit override
+        engineData['CE214'].modules['PipeFlow'].curated_objectives = ["The learner understands water scarcity and equitable distribution.", "The learner is able to assess the impact of infrastructure on local water systems."];
+        
+        // Exact mapping for CS203 Trees & Graphs
+        engineData['CS203'].modules['TreesGraphs'].curated_objectives = ["The learner understands the need for resilient infrastructure (SDG 9).", "The learner is able to design systems that minimize waste and optimize resource use (SDG 12)."];
+        engineData['CS203'].modules['TreesGraphs'].loose_objectives = ["The learner understands the environmental footprint of cities.", "The learner understands the greenhouse effect and climate change.", "The learner is able to promote climate action and reduce emissions."];
+        
+        engineData['CS203'].modules['SortingSearching'].curated_objectives = ["The learner understands the need for resilient infrastructure and sustainable industrialization.", "The learner is able to design systems that minimize waste."];
+        engineData['ME209'].modules['GasPower'].curated_objectives = ["The learner understands different energy sources and their environmental impacts.", "The learner is able to apply energy efficiency measures and promote clean energy."];
+
+            // Build the objectives HTML
+            let objHtml = '<h4 style="margin:0 0 10px 0; color:#15803d; border-bottom:1px solid #bbf7d0; padding-bottom:5px;">Directly Mapped Objectives</h4><ul style="margin:0; padding-left:20px;">';
+            if (data.curated_objectives) {
+                data.curated_objectives.forEach(o => {
+                    let formattedObj = o.replace(/The learner /gi, '<strong>The learner </strong>');
+                    objHtml += `<li style="margin-bottom:8px;">${formattedObj}</li>`;
+                });
+            }
+            objHtml += '</ul>';
+            
+            if (data.loose_objectives && data.loose_objectives.length > 0) {
+                objHtml += '<h4 style="margin:20px 0 10px 0; color:#0f766e; border-bottom:1px solid #bae6fd; padding-bottom:5px;">Loosely Related / Extended Objectives</h4><ul style="margin:0; padding-left:20px; color:#475569;">';
+                data.loose_objectives.forEach(o => {
+                    let formattedObj = o.replace(/The learner /gi, '<strong>The learner </strong>');
+                    objHtml += `<li style="margin-bottom:8px;">${formattedObj}</li>`;
+                });
+                objHtml += '</ul>';
+            }
+
+            view.innerHTML = `
+                <div style="font-size: 0.9rem; color: #64748b; text-transform: uppercase; font-weight: 600; margin-bottom: 5px;">${engineData[courseId].course_name} | Module: ${data.menu_title}</div>
+                <h2 class="topic-title">${data.topic}</h2>
+                <div class="tag-container">${sdgTags}${targetTags}${conceptTags}</div>
+                
+                <div class="step-container">
+                    <div class="step-card">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h3>Context & Real-World Framing</h3>
+                            <div class="grid-2">
+                                <div class="info-box"><h4>Real-Life Challenges</h4><p style="margin:0; font-size:0.95rem;">${data.challenges}</p></div>
+                                <div class="info-box" style="background: #f0fdf4; border-color: #bbf7d0;">
+                                    <h4 style="color: #166534;">Industry Solutions</h4><p style="margin:0; font-size:0.95rem; color:#15803d;">${data.solutions}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="step-card" id="objectives">
+                        <div class="step-number" style="background:#16a34a;">2</div>
+                        <div class="step-content">
+                            <h3 style="color:#16a34a; border-bottom-color:#bbf7d0;">SDG Learning Objectives</h3>
+                            <div style="background:#f0fdf4; padding:20px; border-radius:6px; border:1px solid #bbf7d0;">
+                                ${objHtml}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="step-card">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h3>Educator Guide & Activities</h3>
+                            <div style="margin-bottom: 20px; background:#f8fafc; padding:15px; border-radius:6px; border:1px solid #e2e8f0;">
+                                <strong>💡 Instructional Shift:</strong> ${data.instructional}
+                            </div>
+                            ${activityHtml}
+                        </div>
+                    </div>
+
+                    <div class="step-card" id="assessment">
+                        <div class="step-number" style="background:#dc2626;">4</div>
+                        <div class="step-content">
+                            <h3 style="color:#dc2626; border-bottom-color:#fecaca;">Sustainability Assessment & Evaluation</h3>
+                            <div class="assessment-block">
+                                <h4>📚 ${data.assessments_detail.title}</h4>
+                                <p style="margin:0; font-size:0.95rem;">${data.assessments_detail.desc}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="step-card">
+                        <div class="step-number" style="background:#0f172a;">5</div>
+                        <div class="step-content">
+                            <h3 style="color:#0f172a; border-bottom-color:#e2e8f0;">CAMPUS Framework Implementation</h3>
+                            <div class="campus-grid">
+                                <div class="campus-item"><span class="campus-letter">C</span><div class="campus-text"><b>Confirm SDGs:</b><br/>${linkifySDGs(data.campus.c)}</div></div>
+                                <div class="campus-item"><span class="campus-letter">A</span><div class="campus-text"><b>Align to content:</b><br/>${data.campus.a}</div></div>
+                                <div class="campus-item"><span class="campus-letter">M</span><div class="campus-text"><b>Map to Credit:</b><br/>${data.campus.m}</div></div>
+                                <div class="campus-item"><span class="campus-letter">P</span><div class="campus-text"><b>Perform assessments:</b><br/>${data.campus.p}</div></div>
+                                <div class="campus-item"><span class="campus-letter">U</span><div class="campus-text"><b>Update strategies:</b><br/>${data.campus.u}</div></div>
+                                <div class="campus-item"><span class="campus-letter">S</span><div class="campus-text"><b>Sustain improvements:</b><br/>${data.campus.s}</div></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            switchActivity(0);
+            
+            if (scrollHash === '#assessment') {
+                setTimeout(() => {
+                    const el = document.getElementById('assessment');
+                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
+            }
+        }
+
+        function switchActivity(idx) {
+            if (!currentModuleData) return;
+            const act = currentModuleData.activities[idx];
+            
+            document.querySelectorAll('.act-tab-btn').forEach((btn, i) => {
+                if(i === idx) btn.classList.add('active');
+                else btn.classList.remove('active');
+            });
+            
+            const content = document.getElementById('activity-content');
+            content.innerHTML = `
+                <div class="activity-card">
+                    <div class="activity-type">Undergraduate (UG) Activity</div>
+                    <p class="activity-text">${act.ug}</p>
+                </div>
+                <div class="activity-card">
+                    <div class="activity-type">Postgraduate (PG) Activity</div>
+                    <p class="activity-text">${act.pg}</p>
+                </div>
+                <div class="activity-card project">
+                    <div class="activity-type" style="color: #d97706;">Mini-Project Idea</div>
+                    <p class="activity-text">${act.project}</p>
+                </div>
+            `;
+        }
+
+        window.onload = () => {
+            initSidebar();
+            const urlParams = new URLSearchParams(window.location.search);
+            const courseParam = urlParams.get('course');
+            const moduleParam = urlParams.get('module');
+            const hash = window.location.hash;
+            
+            if (courseParam && moduleParam && engineData[courseParam] && engineData[courseParam].modules[moduleParam]) {
+                loadModule(courseParam, moduleParam, hash);
+            } else {
+                loadModule('CS203', 'TreesGraphs');
+            }
+        };
+    </script>
+</body>
+</html>
